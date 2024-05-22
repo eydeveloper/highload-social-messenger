@@ -9,10 +9,10 @@ import (
 )
 
 type MessengerService struct {
-	redisClient *redis.Client
+	redisClient *redis.ClusterClient
 }
 
-func NewMessengerService(redisClient *redis.Client) *MessengerService {
+func NewMessengerService(redisClient *redis.ClusterClient) *MessengerService {
 	return &MessengerService{
 		redisClient: redisClient,
 	}
