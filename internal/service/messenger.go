@@ -9,10 +9,10 @@ import (
 )
 
 type MessengerService struct {
-	redisClient *redis.Client
+	redisClient *redis.ClusterClient
 }
 
-func NewMessengerService(redisClient *redis.Client) *MessengerService {
+func NewMessengerService(redisClient *redis.ClusterClient) *MessengerService {
 	return &MessengerService{
 		redisClient: redisClient,
 	}
@@ -34,5 +34,5 @@ func (s *MessengerService) GetMessages(userId1, userId2 string) ([]string, error
 func generateKey(userId1, userId2 string) string {
 	ids := []string{userId1, userId2}
 	sort.Strings(ids)
-	return fmt.Sprintf("dialog:%s:%s", ids[0], ids[1])
+	return fmt.Sprintf("%s:%s", ids[0], ids[1])
 }
