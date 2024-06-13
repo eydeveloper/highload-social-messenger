@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/eydeveloper/highload-social-messenger/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 )
@@ -21,8 +22,8 @@ func (h *Handler) InitRoutes() *gin.Engine {
 
 	api := router.Group("api/messages")
 	{
-		api.POST("", h.authenticationMiddleware(), h.sendMessage)
-		api.GET(":id", h.authenticationMiddleware(), h.getMessages)
+		api.POST("", h.authenticationMiddleware(), h.requestIdMiddleware(), h.sendMessage)
+		api.GET(":id", h.authenticationMiddleware(), h.requestIdMiddleware(), h.getMessages)
 	}
 
 	return router
@@ -81,6 +82,19 @@ func (h *Handler) authenticationMiddleware() gin.HandlerFunc {
 		}
 
 		c.Set("userId", response.UserId)
+		c.Next()
+	}
+}
+
+func (h *Handler) requestIdMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		requestId := c.Request.Header.Get("X-Request-ID")
+		if requestId == "" {
+			requestId = uuid.New().String()
+		}
+
+		c.Writer.Header().Set("X-Request-ID", requestId)
+		c.Set("X-Request-ID", requestId)
 		c.Next()
 	}
 }
