@@ -24,8 +24,13 @@ func (h *Handler) sendMessage(c *gin.Context) {
 
 	id, err := h.services.Messenger.SendMessage(message)
 
+	token := c.GetHeader("Authorization")
+
+	err = h.services.Counter.Increment(token, requestId, message.ReceiverId, message.SenderId)
+
 	if err != nil {
-		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+		h.services.Messenger.RollbackSendMessage(id, message.ReceiverId, message.SenderId)
+		newErrorResponse(c, http.StatusInternalServerError, "Something has gone wrong.")
 		return
 	}
 
