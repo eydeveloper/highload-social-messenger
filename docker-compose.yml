@@ -83,6 +83,88 @@ services:
         - redis-node-6-data:/data
     network_mode: "host"
 
+  prometheus:
+    image: prom/prometheus
+    container_name: "highload-messenger-prometheus"
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana
+    container_name: "highload-messenger-grafana"
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana:/etc/grafana/provisioning/datasources
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:latest
+    container_name: "highload-messenger-zabbix-server"
+    restart: always
+    environment:
+      DB_SERVER_HOST: zabbix-postgres
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+    depends_on:
+      - zabbix-postgres
+    ports:
+      - "10051:10051"
+    networks:
+      - zabbix
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:latest
+    container_name: "highload-messenger-zabbix-web"
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: zabbix-postgres
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+    depends_on:
+      - zabbix-postgres
+      - zabbix-server
+    ports:
+      - "8081:8080"
+    networks:
+      - zabbix
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent:latest
+    container_name: "highload-messenger-zabbix-agent"
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+    depends_on:
+      - zabbix-server
+    ports:
+      - "10050:10050"
+    volumes:
+      - ./docker/zabbix/zabbix_agentd.conf:/etc/zabbix/zabbix_agentd.conf
+    networks:
+      - zabbix
+
+  zabbix-postgres:
+    image: postgres:15
+    restart: unless-stopped
+    container_name: "highload-messenger-zabbix-postgres"
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+    ports:
+      - "5439:5432"
+    volumes:
+      - zabbix-postgres:/var/lib/postgresql/data
+    networks:
+      - zabbix
+
 volumes:
   redis-node-1-data:
   redis-node-2-data:
@@ -90,3 +172,8 @@ volumes:
   redis-node-4-data:
   redis-node-5-data:
   redis-node-6-data:
+  zabbix-postgres:
+
+networks:
+  zabbix:
+    driver: bridge
